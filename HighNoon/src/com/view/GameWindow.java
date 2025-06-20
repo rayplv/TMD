@@ -1,7 +1,9 @@
 package com.view;
 
-import com.controller.GameLogic;
-import com.controller.SoundManager;
+import com.services.SoundManager;
+import com.model.DatabaseManager;
+import com.presenter.GamePresenter;
+import com.presenter.MainMenuPresenter;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,50 +13,53 @@ public class GameWindow extends JFrame {
     private JPanel mainPanel;
     private MainMenuPanel mainMenuPanel;
     private GamePanel gamePanel;
-    private GameLogic gameLogic;
+    private GamePresenter gamePresenter;
+    private MainMenuPresenter mainMenuPresenter;
 
     public GameWindow() {
-        // Pengaturan dasar JFrame
         setTitle("High Noon");
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // Tampilkan di tengah layar
+        setLocationRelativeTo(null);
         setResizable(false);
 
-        // Menggunakan CardLayout untuk beralih antara menu dan game
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        // Inisialisasi panel-panel
-        mainMenuPanel = new MainMenuPanel(this);
-        gamePanel = new GamePanel(this);
-        gameLogic = new GameLogic(gamePanel); // GameLogic mengontrol GamePanel
+        // Inisialisasi Model
+        DatabaseManager dbManager = new DatabaseManager();
 
-        // Menambahkan panel ke CardLayout
+        // Inisialisasi Views
+        mainMenuPanel = new MainMenuPanel(this);
+        gamePanel = new GamePanel();
+
+        // Inisialisasi Presenter dan hubungkan ke View
+        mainMenuPresenter = new MainMenuPresenter(mainMenuPanel, dbManager);
+        mainMenuPanel.setPresenter(mainMenuPresenter);
+
+        gamePresenter = new GamePresenter(gamePanel, dbManager, this);
+        gamePanel.setPresenter(gamePresenter);
+
         mainPanel.add(mainMenuPanel, "MENU");
         mainPanel.add(gamePanel, "GAME");
 
         add(mainPanel);
         setVisible(true);
 
-        // Mulai musik di menu
         SoundManager.playMusic("res/sounds/MainTheme.wav");
     }
 
-    // Metode untuk beralih ke panel menu
     public void showMenu() {
-        gameLogic.stopGame();
+        gamePresenter.stopGame();
         cardLayout.show(mainPanel, "MENU");
-        mainMenuPanel.refreshScores(); // Refresh tabel skor setiap kembali ke menu
+        mainMenuPresenter.loadScores();
         SoundManager.playMusic("res/sounds/MainTheme.wav");
     }
 
-    // Metode untuk beralih ke panel game
     public void showGame(String username) {
-        // SoundManager.stopMusic();
-        gamePanel.startGame(username);
-        gameLogic.startGame();
+        // SoundManager.stopMusic(); // Opsional
+        gamePresenter.startGame(username);
         cardLayout.show(mainPanel, "GAME");
-        gamePanel.requestFocusInWindow(); // Agar input keyboard langsung aktif
+        gamePanel.requestFocusInWindow();
     }
 }
